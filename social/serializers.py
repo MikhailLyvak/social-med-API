@@ -21,7 +21,6 @@ class ProfileDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = ("id", "email", "user", "username", "full_name")
-    
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -34,22 +33,27 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = ("id", "created_at", "message", "user_profile")
-        
+
 
 class PostListSerializer(PostSerializer):
-    username = serializers.CharField(source="user_profile.username", read_only=True)
-    
+    username = serializers.CharField(
+        source="user_profile.username", read_only=True)
+
     class Meta:
         model = Post
-        fields = fields = ("id", "created_at", "message", "user_profile", "username")
+        fields = fields = ("id", "created_at", "message",
+                           "user_profile", "username")
 
 
 class PostDetailSerializer(PostSerializer):
-    username = serializers.CharField(source="user_profile.username", read_only=True)
-    user_first_name = serializers.CharField(source="user_profile.first_name", read_only=True)
-    user_last_name = serializers.CharField(source="user_profile.last_name", read_only=True)
-    
+    username = serializers.CharField(
+        source="user_profile.username", read_only=True)
+    user_first_name = serializers.CharField(
+        source="user_profile.first_name", read_only=True)
+    user_last_name = serializers.CharField(
+        source="user_profile.last_name", read_only=True)
+
     class Meta:
         model = Post
-        fields = ("id", "created_at", "message", "username", "user_first_name", "user_last_name")
-
+        fields = ("id", "created_at", "message", "username",
+                  "user_first_name", "user_last_name")

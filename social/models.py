@@ -34,7 +34,7 @@ class Subscription(models.Model):
 
     class Meta:
         unique_together = ('subscriber', 'target')
-        
+
     def __str__(self):
         return f"{self.subscriber} -> {self.target} ({self.target.id})"
 

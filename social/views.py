@@ -1,16 +1,12 @@
-from datetime import datetime
-
-from django.db.models import F, Count
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.views import APIView
 from rest_framework import viewsets, mixins, status
-from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from social.models import Profile, Subscription, Post
-from social.permissions import IsAdminOrIfAuthenticatedReadOnly
+
 
 from social.serializers import (
     ProfileSerializer,
@@ -20,6 +16,7 @@ from social.serializers import (
     PostDetailSerializer,
     PostListSerializer
 )
+
 
 @extend_schema(
     parameters=[
@@ -35,6 +32,7 @@ class ProfileViewSet(
 ):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_queryset(self):
         """Allows user to search by username"""
@@ -61,6 +59,7 @@ class SubscribersViewSet(
 ):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Subscription.objects.filter(subscriber=self.request.user.id)
@@ -74,9 +73,11 @@ class TargetsViewSet(
 ):
     queryset = Subscription.objects.all()
     serializer_class = SubscriptionSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Subscription.objects.filter(target=self.request.user.id)
+
 
 @extend_schema(
     parameters=[
@@ -92,25 +93,22 @@ class PostViewSet(
 ):
     queryset = Post.objects.all()
     serializer_class = PostSerializer
-    
+    permission_classes = [IsAuthenticated]
+
     def get_queryset(self):
         """Allows user to see only his and followers posts"""
         subs_id_posts = Subscription.objects.filter(
             subscriber__id=self.request.user.id
         ).values_list("id", flat=True)
-        
+
         message_part = self.request.query_params.get("message")
-        
+
         queryset = Post.objects.filter(user_profile__in=subs_id_posts)
-        
+
         if message_part:
             queryset = queryset.filter(message__icontains=message_part)
-            
 
         return queryset.distinct()
-    
-        
-            
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -118,3 +116,17 @@ class PostViewSet(
         if self.action == "retrieve":
             return PostDetailSerializer
         return PostSerializer
+
+
+class LogoutView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request):
+        try:
+            refresh_token = request.data["refresh_token"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
